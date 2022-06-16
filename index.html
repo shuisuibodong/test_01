@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="./css/bootstrap.css">
+    <script src="./js/jquery.min.js"></script>
+    <script src="./js/template-web.js"></script>
+    <style>
+        .box {
+            width: 300px;
+            margin: 20px;
+        }
+        
+        p {
+            margin: 0;
+            padding: 0;
+        }
+        
+        .box #content {
+            display: none;
+            border: 1px solid #eee;
+        }
+        
+        .current {
+            background-color: #ccc;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="box">
+        <input type="search" name="" id="input" class="form-control" value="" required="required">
+        <div id="content"></div>
+    </div>
+    <script type="text/html" id="tpl-user">
+        {{each username}}
+        <p class="userList">{{$value}}</p>
+        {{/each}}
+    </script>
+    <script>
+        $(function() {
+            var url = 'http://172.25.11.55:8080'
+            var timer = null
+                //防抖动，设置延时
+            function debounceSearch(kw) {
+                timer = setTimeout(function() {
+                    getdata(kw)
+                }, 500)
+            }
+            //给搜索框添加键盘事件
+            $('#input').on('keyup', function() {
+                    clearTimeout(timer)
+                    let kw = $(this).val().trim()
+                    if (kw.length > 0) {
+                        debounceSearch(kw)
+                    } else {
+                        $('#content').html('')
+                    }
+
+                })
+                //用jquery发送post的ajax请求
+            function getdata(kw) {
+                let set1 = new Set() //存放后台返回的客户名称，用set集合去重
+                let obj = {}
+                $.post(url + '/conf_json/userinterface', {
+                    find: kw
+                }, function(res) {
+                    //请求成功函数，res为后端反馈回来的数据
+                    $.each(res, function(index, iteam) {
+                        if (iteam.username != 'None') {
+                            set1.add(iteam.username)
+                        }
+                    })
+                    obj['username'] = [...set1]
+                        //给模板准备的obj数据格式必须是{'username':['aaa',bbb]}
+                    renderUI(obj)
+                })
+
+            }
+
+            function renderUI(obj) {
+                console.log(obj);
+                //调用art-template模板引擎，按照模板返回拼接好的字符串
+                var htmltext = template('tpl-user', obj)
+                    //把拼接好的字符串渲染到页面
+                $('#content').html(htmltext).show()
+            }
+            $('#content').on('mouseover mouseout', 'p', function() {
+                $(this).toggleClass('current');
+            })
+            $('#content').on('click', 'p', function() {
+                let user = $(this).text();
+                $('#input').val(user)
+                $('#content').html('').hide()
+            })
+
+
+        })
+    </script>
+
+</body>
+
+</html>
